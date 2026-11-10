@@ -12,12 +12,12 @@ Loc::loadMessages(__DIR__ . '/index.php');
 
 CAdminMessage::ShowMessage([
     'TYPE' => 'ERROR',
-    'MESSAGE' => Loc::getMessage('SHEF_FIXMOIZVONKI_INSTALL_TITLE'),
+    'MESSAGE' => Loc::getMessage('shef.fixmoizvonki_INSTALL_TITLE'),
     'DETAILS' => $APPLICATION->GetException()->GetString(),
     'HTML' => true,
 ]);
 ?>
 <form action="<?= $APPLICATION->GetCurPage() ?>">
     <input type="hidden" name="lang" value="<?= LANGUAGE_ID ?>">
-    <input type="submit" value="<?= Loc::getMessage('SHEF_FIXMOIZVONKI_BACK') ?>">
+    <input type="submit" value="<?= Loc::getMessage('shef.fixmoizvonki_BACK') ?>">
 </form>

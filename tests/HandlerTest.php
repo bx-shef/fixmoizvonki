@@ -1,48 +1,50 @@
 <?php
 
-// Обработчик и агент без ядра: подменяем только CAgent и записываем, что в него передали.
+// Обработчик без ядра (заглушки из tests/stub/bitrix.php): фоновая задача ставится только для
+// описания со ссылкой «Мои звонки»; не вышло поставить задачу: запасной вариант, агент.
+require_once __DIR__ . '/stub/bitrix.php';
 require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/handler.php';
 require_once __DIR__ . '/../lib/agent.php';
 
-if (!class_exists('CAgent')) {
-    class CAgent
-    {
-        public static array $calls = [];
-
-        public static function AddAgent(...$args)
-        {
-            self::$calls[] = $args;
-
-            return 1;
-        }
-    }
-}
-
+use Bitrix\Main\Application;
 use Shef\FixMoizvonki\Handler;
 
-$call = static function (string $description): int {
+$call = static function (string $description, bool $jobThrows = false): void {
+    Application::$jobs = [];
+    Application::$jobThrows = $jobThrows;
     CAgent::$calls = [];
     $fields = ['DESCRIPTION' => $description];
     Handler::onActivityChange(1462077, $fields);
-
-    return count(CAgent::$calls);
+    Application::$jobThrows = false;
 };
 
 return [
-    'описание со ссылкой моих звонков ставит агента' => fn() => $call('<a href="https://x.moizvonki.ru/calls/recordings/a.m4a/">r</a>') === 1,
-    'описание без ссылки агента не ставит' => fn() => $call('<p>Длительность звонка: 5 сек.</p>') === 0,
-    'правка дела без описания агента не ставит' => function () {
+    'описание со ссылкой: фоновая задача ставится сразу, агент не нужен' => function () use ($call) {
+        $call('<a href="https://x.moizvonki.ru/calls/recordings/a.m4a/">r</a>');
+
+        return count(Application::$jobs) === 1 && CAgent::$calls === []
+            && Application::$jobs[0][0] === [\Shef\FixMoizvonki\Agent::class, 'runNow']
+            && Application::$jobs[0][1] === [1462077];
+    },
+    'описание без ссылки: ничего не ставится' => function () use ($call) {
+        $call('<p>Длительность звонка: 5 сек.</p>');
+
+        return Application::$jobs === [] && CAgent::$calls === [];
+    },
+    'правка дела без описания: ничего не ставится' => function () {
+        Application::$jobs = [];
         CAgent::$calls = [];
         $fields = ['SUBJECT' => 'x'];
         Handler::onActivityChange(1, $fields);
 
-        return CAgent::$calls === [];
+        return Application::$jobs === [] && CAgent::$calls === [];
     },
-    'агент ставится на модуль shef.fixmoizvonki и на нужное дело' => function () use ($call) {
-        $call('moizvonki.ru');
+    'не вышло поставить фоновую задачу: запасной агент на то же дело' => function () use ($call) {
+        $call('moizvonki.ru', true);
 
-        return CAgent::$calls[0][1] === 'shef.fixmoizvonki'
+        return Application::$jobs === [] && count(CAgent::$calls) === 1
+            && CAgent::$calls[0][1] === 'shef.fixmoizvonki'
             && str_contains(CAgent::$calls[0][0], 'Agent::run(1462077,1);');
     },
 ];

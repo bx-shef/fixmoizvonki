@@ -37,6 +37,16 @@ final class Logging
         return self::$logger = $logger;
     }
 
+    /**
+     * Строка лога с датой и уровнем. Форматтер Битрикса подставляет в текст только плейсхолдеры
+     * вида {имя} из контекста и больше ничего не дописывает, поэтому детали пишем в сам текст.
+     */
+    public static function write(string $level, string $text, array $context = []): void
+    {
+        $context['level'] = strtoupper($level);
+        self::get()->log($level, '{date} {level} ' . $text . '{delimiter}', $context);
+    }
+
     private static function createDefault(): LoggerInterface
     {
         $dir = dirname(rtrim(Application::getDocumentRoot(), '/' . chr(92))) . '/sh_log';

@@ -115,6 +115,10 @@ final class RecordAttacher
             ]);
             $http->setOutputStream($handle);
             $ok = $http->query(HttpClient::HTTP_GET, $url);
+            if ($ok !== false && (int)$http->getStatus() === 200) {
+                // С outputStream тело пишет в файл именно getResult(), а не query().
+                $http->getResult();
+            }
             fclose($handle);
 
             if ($ok === false) {

@@ -2,12 +2,17 @@
 
 namespace Shef\FixMoizvonki;
 
+use Bitrix\Main\Application;
+
 final class Handler
 {
     /**
      * События CRM OnActivityAdd и OnActivityUpdate (после сохранения дела). Ядро шлёт их
      * позиционными аргументами, поэтому обработчик зарегистрирован как Compatible.
-     * Здесь только дешёвая проверка поля и постановка задачи: сеть в сохранении дела не трогаем.
+     *
+     * Сеть в самом сохранении дела не трогаем: обработка уходит в фоновую задачу, которая
+     * выполняется сразу после ответа (без ожидания cron). Не получилось поставить задачу:
+     * запасной вариант, агент.
      */
     public static function onActivityChange($id, &$fields): void
     {
@@ -18,6 +23,15 @@ final class Handler
             return;
         }
 
-        Agent::schedule((int)$id);
+        $id = (int)$id;
+        if ($id <= 0) {
+            return;
+        }
+
+        try {
+            Application::getInstance()->addBackgroundJob([Agent::class, 'runNow'], [$id]);
+        } catch (\Throwable $e) {
+            Agent::schedule($id);
+        }
     }
 }

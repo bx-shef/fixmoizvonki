@@ -18,6 +18,7 @@ class shef_fixmoizvonki extends CModule
     public $MODULE_VERSION_DATE;
     public $MODULE_NAME;
     public $MODULE_DESCRIPTION;
+    public $MODULE_SORT = 1003;
     public $MODULE_GROUP_RIGHTS = 'N';
     public $PARTNER_NAME;
     public $PARTNER_URI;
@@ -37,10 +38,10 @@ class shef_fixmoizvonki extends CModule
 
         $this->MODULE_VERSION = $arModuleVersion['VERSION'];
         $this->MODULE_VERSION_DATE = $arModuleVersion['VERSION_DATE'];
-        $this->MODULE_NAME = Loc::getMessage('SHEF_FIXMOIZVONKI_MODULE_NAME');
-        $this->MODULE_DESCRIPTION = Loc::getMessage('SHEF_FIXMOIZVONKI_MODULE_DESC');
-        $this->PARTNER_NAME = Loc::getMessage('SHEF_FIXMOIZVONKI_PARTNER_NAME');
-        $this->PARTNER_URI = 'https://github.com/bx-shef/fixmoizvonki';
+        $this->MODULE_NAME = Loc::getMessage('shef.fixmoizvonki_MODULE_NAME');
+        $this->MODULE_DESCRIPTION = Loc::getMessage('shef.fixmoizvonki_MODULE_DESC');
+        $this->PARTNER_NAME = Loc::getMessage('shef.fixmoizvonki_PARTNER_NAME');
+        $this->PARTNER_URI = Loc::getMessage('shef.fixmoizvonki_PARTNER_URI');
     }
 
     public function DoInstall()
@@ -50,7 +51,7 @@ class shef_fixmoizvonki extends CModule
             // Прервать установку можно только показом формы с ошибкой: return её не остановит.
             $GLOBALS['APPLICATION']->ThrowException(implode('<br>', $errors));
             $GLOBALS['APPLICATION']->IncludeAdminFile(
-                Loc::getMessage('SHEF_FIXMOIZVONKI_INSTALL_TITLE'),
+                Loc::getMessage('shef.fixmoizvonki_INSTALL_TITLE'),
                 __DIR__ . '/error.php'
             );
 
@@ -99,15 +100,15 @@ class shef_fixmoizvonki extends CModule
         $errors = [];
 
         if (version_compare(PHP_VERSION, self::PHP_MIN_VERSION, '<')) {
-            $errors[] = Loc::getMessage('SHEF_FIXMOIZVONKI_ERR_PHP', ['#VERSION#' => self::PHP_MIN_VERSION]);
+            $errors[] = Loc::getMessage('shef.fixmoizvonki_ERR_PHP', ['#VERSION#' => self::PHP_MIN_VERSION]);
         }
         // Модуль поставляется в UTF-8: на портале в CP1251 получился бы мусор.
         if (!Application::isUtfMode()) {
-            $errors[] = Loc::getMessage('SHEF_FIXMOIZVONKI_ERR_UTF');
+            $errors[] = Loc::getMessage('shef.fixmoizvonki_ERR_UTF');
         }
         foreach (self::NEED_MODULES as $module) {
             if (!ModuleManager::isModuleInstalled($module)) {
-                $errors[] = Loc::getMessage('SHEF_FIXMOIZVONKI_ERR_MODULE', ['#MODULE#' => $module]);
+                $errors[] = Loc::getMessage('shef.fixmoizvonki_ERR_MODULE', ['#MODULE#' => $module]);
             }
         }
 

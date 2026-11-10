@@ -2,13 +2,20 @@
 
 namespace Shef\FixMoizvonki;
 
+use Bitrix\Main\Application;
+
 /**
- * Разовый агент с повторами: статистика звонка может появиться чуть позже дела,
- * а скачивание не всегда удаётся с первой попытки.
+ * Обработка дела: сразу после ответа (фоновая задача) и запасной вариант на случай неудачи
+ * (разовый агент с повторами: статистика звонка может появиться чуть позже дела, а скачивание
+ * не всегда удаётся с первой попытки).
  */
 final class Agent
 {
-    public static function schedule(int $activityId, int $attempt = 1): void
+    private const DONE = 'done';
+    private const RETRY = 'retry';
+
+    /** Постановка повтора агентом. Задержка в секундах до первого запуска. */
+    public static function schedule(int $activityId, int $attempt = 1, int $delay = 10): void
     {
         if ($activityId <= 0) {
             return;
@@ -21,8 +28,17 @@ final class Agent
             Config::RETRY_INTERVAL,
             '',
             'Y',
-            date('d.m.Y H:i:s', time() + 10)
+            date('d.m.Y H:i:s', time() + $delay)
         );
+    }
+
+    /** Фоновая задача из Handler: выполняется сразу после ответа. Не вышло: повтор агентом. */
+    public static function runNow($activityId = 0): void
+    {
+        $activityId = (int)$activityId;
+        if (self::process($activityId, 1) === self::RETRY) {
+            self::schedule($activityId, 2, Config::RETRY_INTERVAL);
+        }
     }
 
     /** Вызывается планировщиком агентов. Пустая строка: больше не запускать. */
@@ -30,43 +46,64 @@ final class Agent
     {
         $activityId = (int)$activityId;
         $attempt = (int)$attempt;
-        $logger = Logging::get();
 
-        try {
-            $result = RecordAttacher::attach($activityId);
-        } catch (\Throwable $e) {
-            $logger->error('Исключение при прикреплении записи', [
-                'activityId' => $activityId,
-                'attempt' => $attempt,
-                'exception' => $e,
-            ]);
-
-            return $attempt < Config::MAX_ATTEMPTS ? self::command($activityId, $attempt + 1) : '';
-        }
-
-        if ($result->isSuccess()) {
-            $logger->info('Дело обработано', ['activityId' => $activityId, 'attempt' => $attempt] + $result->getData());
-
-            return '';
-        }
-
-        $error = $result->getErrors()[0];
-        $logger->warning('Запись не прикреплена', [
-            'activityId' => $activityId,
-            'attempt' => $attempt,
-            'code' => $error->getCode(),
-            'reason' => $error->getMessage(),
-        ]);
-
-        if ($error->getCode() === RecordAttacher::ERR_RETRY && $attempt < Config::MAX_ATTEMPTS) {
+        if (self::process($activityId, $attempt) === self::RETRY && $attempt < Config::MAX_ATTEMPTS) {
             return self::command($activityId, $attempt + 1);
         }
 
         return '';
     }
 
+    private static function process(int $activityId, int $attempt): string
+    {
+        // Одно дело обрабатывает один процесс: события Add и Update могут прийти оба.
+        $connection = Application::getConnection();
+        $lockName = 'shef.fixmoizvonki.' . $activityId;
+        if (!$connection->lock($lockName, 0)) {
+            return self::DONE;
+        }
+
+        try {
+            $result = RecordAttacher::attach($activityId);
+        } catch (\Throwable $e) {
+            Logging::write('error', 'дело {activityId}, попытка {attempt}: исключение {error}', [
+                'activityId' => $activityId,
+                'attempt' => $attempt,
+                'error' => get_class($e) . ': ' . $e->getMessage(),
+            ]);
+
+            return self::RETRY;
+        } finally {
+            $connection->unlock($lockName);
+        }
+
+        if ($result->isSuccess()) {
+            $data = $result->getData();
+            Logging::write('info', 'дело {activityId}, попытка {attempt}: {status}{details}', [
+                'activityId' => $activityId,
+                'attempt' => $attempt,
+                'status' => (string)($data['status'] ?? 'готово'),
+                'details' => isset($data['fileId'])
+                    ? ' (файл ' . $data['fileId'] . ', ' . ($data['bytes'] ?? 0) . ' байт)'
+                    : '',
+            ]);
+
+            return self::DONE;
+        }
+
+        $error = $result->getErrors()[0];
+        Logging::write('warning', 'дело {activityId}, попытка {attempt}: [{code}] {reason}', [
+            'activityId' => $activityId,
+            'attempt' => $attempt,
+            'code' => $error->getCode(),
+            'reason' => $error->getMessage(),
+        ]);
+
+        return $error->getCode() === RecordAttacher::ERR_RETRY ? self::RETRY : self::DONE;
+    }
+
     private static function command(int $activityId, int $attempt): string
     {
-        return '\Shef\FixMoizvonki\Agent::run(' . $activityId . ',' . $attempt . ');';
+        return '\\Shef\\FixMoizvonki\\Agent::run(' . $activityId . ',' . $attempt . ');';
     }
 }
