@@ -14,6 +14,10 @@ return [
     'агент пишет в лог только через Logging::write' => fn() => !str_contains($agent, '->warning(')
         && !str_contains($agent, '->error(') && str_contains($agent, 'Logging::write('),
     'Logging::write кладёт в текст дату и уровень' => fn() => str_contains($logging, '{date} {level} '),
+    // Плейсхолдер {delimiter} форматтера Битрикса это «----------», а не перевод строки:
+    // строки лога слипались в одну.
+    'строки лога разделены переводом строки' => fn() => !str_contains($logging, '{delimiter}')
+        && str_contains($logging, 'PHP_EOL'),
     // События Add и Update приходят оба: одно дело обрабатывает один процесс.
     'обработка дела под блокировкой' => fn() => str_contains($agent, '->lock(') && str_contains($agent, '->unlock('),
 ];

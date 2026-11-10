@@ -44,7 +44,7 @@ final class Logging
     public static function write(string $level, string $text, array $context = []): void
     {
         $context['level'] = strtoupper($level);
-        self::get()->log($level, '{date} {level} ' . $text . '{delimiter}', $context);
+        self::get()->log($level, '{date} {level} ' . $text . PHP_EOL, $context);
     }
 
     private static function createDefault(): LoggerInterface
