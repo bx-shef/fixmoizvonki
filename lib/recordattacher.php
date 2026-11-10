@@ -41,13 +41,13 @@ final class RecordAttacher
             return self::fail(self::ERR_FATAL, 'дело не найдено');
         }
         if (($activity['PROVIDER_ID'] ?? '') !== 'VOXIMPLANT_CALL') {
-            return new Result(); // не звонок телефонии, нечего делать
+            return self::ok('пропуск: дело не звонок телефонии');
         }
 
         $description = (string)($activity['DESCRIPTION'] ?? '');
         $url = LinkParser::extractRecordUrl($description);
         if ($url === null) {
-            return new Result(); // ссылки нет или она уже убрана
+            return self::ok('пропуск: ссылки на запись в описании нет');
         }
 
         $statistic = self::findStatistic($activity);
@@ -55,7 +55,7 @@ final class RecordAttacher
             return self::fail(self::ERR_RETRY, 'статистика звонка ещё не создана');
         }
         if (!empty($statistic['CALL_RECORD_ID'])) {
-            return new Result(); // у звонка уже есть запись
+            return self::ok('пропуск: у звонка уже есть запись');
         }
 
         $name = LinkParser::fileNameFromUrl($url, 'moizvonki-' . $activityId . '.m4a');
@@ -244,7 +244,16 @@ final class RecordAttacher
             'CALL_RECORD_URL' => $url,
         ]);
 
-        return new Result();
+        return self::ok('прикреплено', ['fileId' => (int)$file->getId(), 'bytes' => (int)@filesize($tempPath)]);
+    }
+
+    /** Успех с пояснением: Agent пишет его в лог, чтобы по журналу было видно, что произошло. */
+    private static function ok(string $status, array $data = []): Result
+    {
+        $result = new Result();
+        $result->setData(['status' => $status] + $data);
+
+        return $result;
     }
 
     private static function fail(string $code, string $message): Result

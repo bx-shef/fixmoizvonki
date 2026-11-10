@@ -45,6 +45,8 @@ final class Agent
         }
 
         if ($result->isSuccess()) {
+            $logger->info('Дело обработано', ['activityId' => $activityId, 'attempt' => $attempt] + $result->getData());
+
             return '';
         }
 

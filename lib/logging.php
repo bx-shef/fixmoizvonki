@@ -5,7 +5,6 @@ namespace Shef\FixMoizvonki;
 use Bitrix\Main\Application;
 use Bitrix\Main\Diag\FileLogger;
 use Bitrix\Main\Diag\LoggerFactory;
-use Bitrix\Main\Diag\LoggerRegistry;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Psr\Log\NullLogger;
@@ -16,7 +15,7 @@ use Psr\Log\NullLogger;
  * Если администратор описал logger id `shef.fixmoizvonki.main` в секции `loggers`
  * файла /bitrix/.settings.php, берётся он. Иначе пишем в файл `shef.fixmoizvonki.log`
  * в каталоге `sh_log` на уровень выше корня сайта (вне публичной части).
- * Нет доступного каталога или логгер выключен в реестре: молчим, на работу это не влияет.
+ * Нет доступного для записи каталога: молчим, на работу это не влияет.
  */
 final class Logging
 {
@@ -28,11 +27,9 @@ final class Logging
             return self::$logger;
         }
 
-        if (!(new LoggerRegistry())->isEnabled(Config::LOGGER_ID)) {
-            return self::$logger = new NullLogger();
-        }
-
-        $logger = (new LoggerFactory(false))->createById(Config::LOGGER_ID, [], true, false);
+        // Реестр (LoggerRegistry) не спрашиваем: он по умолчанию считает логгер выключенным,
+        // а лог модуля нужен всегда. Проверка реестра отключена третьим аргументом (false).
+        $logger = (new LoggerFactory(false))->createById(Config::LOGGER_ID, [], false, false);
         if ($logger === null) {
             $logger = self::createDefault();
         }
