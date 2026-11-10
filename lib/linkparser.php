@@ -70,13 +70,22 @@ final class LinkParser
         return substr($originId, 3);
     }
 
-    /** Убирает из описания плеер и ссылку на запись, остальное (длительность) оставляет. */
-    public static function stripRecordBlock(string $description): string
+    /**
+     * Описание дела после прикрепления записи: простой текст без HTML. Таймлайн показывает
+     * описание как есть, и теги <p> торчали бы наружу. Плеер и ссылку заменяет сама запись,
+     * длительность видна в звонке. Остаётся название приложения («Приложение: Мои Звонки - Android»);
+     * если его в исходном тексте нет, пишем «Приложение «Мои звонки»».
+     */
+    public static function buildDescription(string $description): string
     {
-        $out = preg_replace('~<audio\b[^>]*>.*?</audio>~is', '', $description) ?? $description;
-        $out = preg_replace('~<a\b[^>]*moizvonki\.ru/calls/recordings[^>]*>.*?</a>~is', '', $out) ?? $out;
-        $out = preg_replace('~^(\s|<br\s*/?>)+~i', '', $out) ?? $out;
+        $text = preg_replace('~<(br|/p)\b[^>]*>~i', ' ', $description) ?? $description;
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5);
+        $text = trim(preg_replace('~\s+~u', ' ', $text) ?? $text);
 
-        return trim($out);
+        if (preg_match('~Приложение:\s*([^.]+?)\s*(?:\.|$)~u', $text, $m)) {
+            return 'Приложение: ' . $m[1];
+        }
+
+        return 'Приложение «Мои звонки»';
     }
 }

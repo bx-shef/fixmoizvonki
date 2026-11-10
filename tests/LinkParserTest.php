@@ -21,6 +21,12 @@ return [
     'имя файла: запасное, если расширения нет' => fn() => LinkParser::fileNameFromUrl('https://a.moizvonki.ru/calls/recordings/abc', 'f.m4a') === 'f.m4a',
     'CALL_ID из ORIGIN_ID' => fn() => LinkParser::callIdFromOriginId('VI_externalCall.681c.1794298183') === 'externalCall.681c.1794298183',
     'ORIGIN_ID не от внешнего звонка' => fn() => LinkParser::callIdFromOriginId('VI_abc') === null,
-    'из описания убираются плеер и ссылка, длительность остаётся' => fn() => LinkParser::stripRecordBlock(DESC) === '<p>Длительность звонка: 93 сек.</p>',
-    'описание без записи не меняется' => fn() => LinkParser::stripRecordBlock('<p>Привет</p>') === '<p>Привет</p>',
+    'описание реального звонка: простой текст с названием приложения, без тегов и длительности' => fn() => LinkParser::buildDescription(
+        '<audio src="https://x.moizvonki.ru/calls/recordings/a.mp3/" controls></audio><br><br>'
+        . '<a href="https://x.moizvonki.ru/calls/recordings/a.mp3/">Скачать запись разговора</a>'
+        . '<p>Длительность звонка: 85 сек.</p><p>Звонок поступил на номер: Приложение: Мои Звонки - Android.</p>'
+    ) === 'Приложение: Мои Звонки - Android',
+    'в описании нет названия приложения: общий текст' => fn() => LinkParser::buildDescription(DESC) === 'Приложение «Мои звонки»',
+    'в готовом описании нет ни одного тега' => fn() => strip_tags(LinkParser::buildDescription(DESC)) === LinkParser::buildDescription(DESC),
+    'повторная обработка описания ничего не портит' => fn() => LinkParser::buildDescription('Приложение: Мои Звонки - Android') === 'Приложение: Мои Звонки - Android',
 ];

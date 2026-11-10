@@ -232,7 +232,7 @@ final class RecordAttacher
             [
                 'STORAGE_TYPE_ID' => StorageType::Disk,
                 'STORAGE_ELEMENT_IDS' => [$file->getId()],
-                'DESCRIPTION' => LinkParser::stripRecordBlock((string)$activity['DESCRIPTION']),
+                'DESCRIPTION' => LinkParser::buildDescription((string)$activity['DESCRIPTION']),
             ],
             false
         );
