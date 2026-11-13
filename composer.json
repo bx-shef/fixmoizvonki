@@ -2,6 +2,7 @@
     "name": "bxshef/fixmoizvonki",
     "description": "Битрикс24 (коробка): запись разговора из «Мои звонки» файлом к звонку и делу",
     "type": "bitrix-module",
+    "license": "proprietary",
     "keywords": ["bitrix", "Bitrix24", "telephony", "moizvonki"],
     "homepage": "https://github.com/bx-shef/fixmoizvonki",
     "support": {
