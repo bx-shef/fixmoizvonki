@@ -26,7 +26,7 @@ return [
         return !$missing;
     },
     'название с префиксом [SH], партнёр и сайт как у линейки' => fn() => str_starts_with($MESS['shef.fixmoizvonki_MODULE_NAME'], '[SH] ')
-        && $MESS['shef.fixmoizvonki_PARTNER_NAME'] === 'ИП Шевчик И.С.'
+        && $MESS['shef.fixmoizvonki_PARTNER_NAME'] === 'ООО «БэИксШефБай»'
         && $MESS['shef.fixmoizvonki_PARTNER_URI'] === 'https://bx-shef.by',
     'сортировка в ряду shef.* (options 1000, uiclear 1001, problems 1002)' => fn() => str_contains($install, 'MODULE_SORT = 1003'),
     'при удалении снимаются агенты модуля' => fn() => str_contains($install, 'RemoveModuleAgents'),
